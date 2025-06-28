@@ -1,5 +1,3 @@
-require('dotenv').config();
-
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -11,7 +9,7 @@ const app = express();
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || 'supersecret',
+    secret: 'supersecret', // Can be replaced with process.env.SESSION_SECRET if you later use an env var
     resave: false,
     saveUninitialized: false,
   })
@@ -19,9 +17,6 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
 
 passport.use(
   new DiscordStrategy(
@@ -31,30 +26,34 @@ passport.use(
       callbackURL: process.env.CALLBACK_URL,
       scope: ['identify', 'guilds'],
     },
-    (accessToken, refreshToken, profile, done) => {
-      process.nextTick(() => done(null, profile));
+    function (accessToken, refreshToken, profile, done) {
+      return done(null, profile);
     }
   )
 );
 
-function ensureHasRole(req, res, next) {
-  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
 
-  fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
-    headers: {
-      Authorization: `Bot ${process.env.BOT_TOKEN}`,
-    },
-  })
-    .then(res => res.json())
-    .then(member => {
-      const hasRole = member.roles?.includes(process.env.ROLE_ID);
-      if (hasRole) return next();
-      return res.status(403).send('Access denied.');
-    })
-    .catch(err => {
-      console.error('Role check failed:', err);
-      return res.status(500).send('Internal server error.');
-    });
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+function ensureHasRole(req, res, next) {
+  if (!req.user) {
+    return res.redirect('/login.html');
+  }
+
+  const hasRole = req.user.guilds?.some(
+    (g) => g.id === process.env.GUILD_ID
+  );
+
+  if (hasRole) {
+    return next();
+  } else {
+    return res.redirect('/unauthorized.html');
+  }
 }
 
 app.get('/auth/discord', passport.authenticate('discord'));
@@ -62,11 +61,27 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get(
   '/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
-  (req, res) => res.redirect('/')
+  function (req, res) {
+    res.redirect('/');
+  }
 );
 
 app.get('/logout', (req, res) => {
   req.logout(() => res.redirect('/'));
+});
+
+app.get('/check-role', (req, res) => {
+  if (!req.user) return res.status(401).json({ authorized: false });
+
+  const hasRole = req.user.guilds?.some(
+    (g) => g.id === process.env.GUILD_ID
+  );
+
+  if (hasRole) {
+    res.json({ authorized: true, username: req.user.username });
+  } else {
+    res.json({ authorized: false });
+  }
 });
 
 app.get('/check-auth', (req, res) => {
@@ -77,6 +92,5 @@ app.get('/', ensureHasRole, (req, res) => {
   res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log('Server started on port', process.env.PORT || 3000);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
