@@ -1,4 +1,6 @@
+
 require('dotenv').config();
+
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
@@ -10,7 +12,7 @@ const app = express();
 
 app.use(
   session({
-    secret: 'supersercret',
+    secret: 'supersecret',
     resave: false,
     saveUninitialized: false,
   })
@@ -49,8 +51,6 @@ async function ensureHasRole(req, res, next) {
         },
       }
     );
-
-    if (!response.ok) return res.status(403).send('Access denied.');
 
     const member = await response.json();
     const hasRole = member.roles.includes(process.env.ROLE_ID);
