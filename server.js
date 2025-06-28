@@ -64,7 +64,7 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', {
   failureRedirect: '/'
 }), (req, res) => {
-  res.redirect('/');
+  res.redirect('/leverage_calculator.html');
 });
 
 app.get('/logout', (req, res) => {
@@ -79,7 +79,8 @@ app.get('/check-auth', (req, res) => {
   }
 });
 
-app.get('/', ensureAuthenticated, ensureHasRole, (req, res) => {
+// Serve calculator ONLY if authenticated + has role
+app.get('/leverage_calculator.html', ensureAuthenticated, ensureHasRole, (req, res) => {
   res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
 });
 
