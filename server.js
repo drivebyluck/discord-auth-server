@@ -9,7 +9,7 @@ const app = express();
 
 app.use(
   session({
-    secret: 'supersecret', // Can be replaced with process.env.SESSION_SECRET if you later use an env var
+    secret: process.env.SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
   })
@@ -17,6 +17,14 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
 
 passport.use(
   new DiscordStrategy(
@@ -32,18 +40,9 @@ passport.use(
   )
 );
 
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
 function ensureHasRole(req, res, next) {
-  if (!req.user) {
-    return res.redirect('/login.html');
-  }
+  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
+  if (!req.user) return res.redirect('/login.html');
 
   const hasRole = req.user.guilds?.some(
     (g) => g.id === process.env.GUILD_ID
@@ -61,9 +60,7 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get(
   '/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
-  function (req, res) {
-    res.redirect('/');
-  }
+  (req, res) => res.redirect('/')
 );
 
 app.get('/logout', (req, res) => {
