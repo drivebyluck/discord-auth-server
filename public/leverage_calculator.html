@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradeWithJars Calculator</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/png" href="TradeWithJarslogo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background-color: #0a0a0a;
+      color: #e0ffe0;
+      margin: 0;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #00ff99;
+    }
+    .section {
+      background-color: #111;
+      border: 2px solid #00ff99;
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 800px;
+      margin: 20px auto;
+      box-shadow: 0 0 12px rgba(0, 255, 153, 0.2);
+    }
+    input, select, button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #00ff99;
+      background-color: #000;
+      color: #e0ffe0;
+    }
+    button {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .result {
+      text-align: center;
+      font-size: 1.1rem;
+      color: #ffffff;
+      margin-top: 10px;
+    }
+    .mode-buttons {
+      text-align: center;
+    }
+    .mode-buttons button {
+      width: 30%;
+      display: inline-block;
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+  
+<div id="loginSection" class="section">
+  <h2>Login with Discord</h2>
+  <button onclick="window.location.href='/auth/discord'">Login</button>
+</div>
+
+<script>
+  async function checkUserRole() {
+    const res = await fetch('/check-role');
+    const data = await res.json();
+
+    if (data.hasRole) {
+      document.getElementById('loginSection').style.display = 'none';
+      document.querySelector('h1').style.display = 'block';
+      document.querySelector('.mode-buttons').style.display = 'block';
+      document.querySelectorAll('.section').forEach(el => {
+        if (el.id !== 'loginSection') el.style.display = 'block';
+      });
+    } else {
+      document.getElementById('loginSection').innerHTML = '<h2>Access Denied</h2><p>You must have the TradeWithJars role in Discord to use the calculator.</p>';
+    }
+  }
+
+  checkUserRole();
+</script>
+
+<h1>TradeWithJars Leverage Calculator</h1>
+  <div class="mode-buttons">
+    <button onclick="toggleMode('controlled')">Controlled Mode</button>
+    <button onclick="toggleMode('degen')">Degen Mode</button>
+    <button onclick="toggleMode('scalp')">Scalp Mode</button>
+  </div>
+
+  <div id="controlled" class="section">
+    <h2>Controlled Mode</h2>
+    <input id="c_investment" placeholder="Investment ($)" type="number">
+    <input id="c_profit" placeholder="Target Profit ($)" type="number">
+    <input id="c_loss" placeholder="Max Loss ($)" type="number">
+    <input id="c_leverage" placeholder="Leverage" type="number">
+    <input id="c_entry" placeholder="Entry Price" type="number">
+    <select id="c_direction">
+      <option value="Long">Long</option>
+      <option value="Short">Short</option>
+    </select>
+    <button onclick="calculateControlled()">Calculate</button>
+    <div id="c_result" class="result"></div>
+  </div>
+
+  <div id="degen" class="section" style="display: none;">
+    <h2>Degen Mode</h2>
+    <input id="d_investment" placeholder="Investment ($)" type="number">
+    <input id="d_profit" placeholder="Target Profit ($)" type="number">
+    <input id="d_loss" placeholder="Max Loss ($)" type="number">
+    <input id="d_entry" placeholder="Entry Price" type="number">
+    <input id="d_exit" placeholder="Exit Price" type="number">
+    <select id="d_direction">
+      <option value="Long">Long</option>
+      <option value="Short">Short</option>
+    </select>
+    <button onclick="calculateDegen()">Calculate</button>
+    <div id="d_result" class="result"></div>
+  </div>
+
+  <div id="scalp" class="section" style="display: none;">
+    <h2>Scalp Mode</h2>
+    <input id="entryPriceScalp" placeholder="Entry Price" type="number">
+    <input id="investmentScalp" placeholder="Investment Amount ($)" type="number">
+    <select id="gainScalp">
+      <option value="10">10%</option>
+      <option value="20">20%</option>
+      <option value="30">30%</option>
+      <option value="40">40%</option>
+      <option value="50">50%</option>
+    </select>
+    <select id="directionScalp">
+      <option value="long">Long</option>
+      <option value="short">Short</option>
+    </select>
+    <button onclick="calculateScalp()">Calculate</button>
+    <div id="scalpResults" class="result"></div>
+  </div>
+
+  <script>
+    function toggleMode(mode) {
+      document.getElementById('controlled').style.display = mode === 'controlled' ? 'block' : 'none';
+      document.getElementById('degen').style.display = mode === 'degen' ? 'block' : 'none';
+      document.getElementById('scalp').style.display = mode === 'scalp' ? 'block' : 'none';
+    }
+
+    function getDecimalPlaces(num) {
+      const str = num.toString();
+      return str.includes('.') ? str.split('.')[1].length : 0;
+    }
+
+    function calculateControlled() {
+      const investment = parseFloat(document.getElementById('c_investment').value);
+      const profit = parseFloat(document.getElementById('c_profit').value);
+      const loss = parseFloat(document.getElementById('c_loss').value);
+      const leverage = parseFloat(document.getElementById('c_leverage').value);
+      const entry = parseFloat(document.getElementById('c_entry').value);
+      const direction = document.getElementById('c_direction').value;
+      if (isNaN(investment) || isNaN(profit) || isNaN(loss) || isNaN(leverage) || isNaN(entry)) {
+        document.getElementById('c_result').textContent = "You must fill all fields before calculation.";
+        return;
+      }
+      const move = (profit / (investment * leverage)) * entry;
+      const stop = (loss / (investment * leverage)) * entry;
+      const tp = direction === "Long" ? entry + move : entry - move;
+      const sl = direction === "Long" ? entry - stop : entry + stop;
+      const dp = getDecimalPlaces(entry);
+      document.getElementById('c_result').textContent = `Take Profit: $${tp.toFixed(dp)} | Stop Loss: $${sl.toFixed(dp)}`;
+    }
+
+    function calculateDegen() {
+      const investment = parseFloat(document.getElementById('d_investment').value);
+      const profit = parseFloat(document.getElementById('d_profit').value);
+      const loss = parseFloat(document.getElementById('d_loss').value);
+      const entry = parseFloat(document.getElementById('d_entry').value);
+      const exit = parseFloat(document.getElementById('d_exit').value);
+      const direction = document.getElementById('d_direction').value;
+      if (isNaN(investment) || isNaN(profit) || isNaN(loss) || isNaN(entry) || isNaN(exit)) {
+        document.getElementById('d_result').textContent = "You must fill all fields before calculation.";
+        return;
+      }
+      if ((direction === "Long" && exit <= entry) || (direction === "Short" && exit >= entry)) {
+        document.getElementById('d_result').textContent = "Invalid exit price for selected direction.";
+        return;
+      }
+      const lev = Math.abs((profit / investment) / Math.abs(exit - entry) * entry);
+      const move = (loss / (investment * lev)) * entry;
+      const sl = direction === "Long" ? entry - move : entry + move;
+      const dp = getDecimalPlaces(entry);
+      document.getElementById('d_result').textContent = `Leverage: ${lev.toFixed(dp)} | Stop Loss: $${sl.toFixed(dp)}`;
+    }
+
+    function calculateScalp() {
+      const entry = parseFloat(document.getElementById('entryPriceScalp').value);
+      const invest = parseFloat(document.getElementById('investmentScalp').value);
+      const gainPct = parseFloat(document.getElementById('gainScalp').value);
+      const direction = document.getElementById('directionScalp').value;
+      if (isNaN(entry) || isNaN(invest) || isNaN(gainPct)) {
+        document.getElementById('scalpResults').textContent = "You must fill all fields before calculation.";
+        return;
+      }
+      const dec = getDecimalPlaces(entry);
+      const gain = invest * (gainPct / 100);
+      const risk = invest * 0.05;
+      const output = [];
+      [10, 20, 30, 40, 50].forEach(lev => {
+        const size = invest * lev;
+        const tpMove = gain / size;
+        const slMove = risk / size;
+        const tp = direction === "long" ? entry * (1 + tpMove) : entry * (1 - tpMove);
+        const sl = direction === "long" ? entry * (1 - slMove) : entry * (1 + slMove);
+        output.push(`<b>${lev}x</b><br>TP: $${tp.toFixed(dec)}<br>SL: $${sl.toFixed(dec)}<br><br>`);
+      });
+      document.getElementById('scalpResults').innerHTML = output.join('');
+    }
+  </script>
+</body>
+</html>
