@@ -7,88 +7,70 @@ require('dotenv').config();
 
 const app = express();
 
-app.use(session({
-  secret: 'supersecret',
-  resave: false,
-  saveUninitialized: false,
-}));
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
 
+passport.use(
+  new DiscordStrategy(
+    {
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      discordcallbackURL: 'https://discord-auth-server-ajjz.onrender.com/auth/discord/callback',
+      scope: ['identify', 'guilds', 'guilds.members.read'],
+    },
+    (accessToken, refreshToken, profile, done) => {
+      return done(null, profile);
+    }
+  )
+);
+
+app.use(
+  session({
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+app.use(express.static(path.join(__dirname, 'public')));
 
-passport.use(new DiscordStrategy({
-  clientID: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  callbackURL: 'http://localhost:3000/auth/discord/callback',
-  scope: ['identify', 'guilds', 'guilds.members.read'],
-}, (accessToken, refreshToken, profile, done) => {
-  process.nextTick(() => done(null, profile));
-}));
-
-// Middleware to check login
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) return next();
-  res.redirect('/auth/discord');
-}
-
-// Middleware to check for TradeWithJars role in specified server
-const fetch = require('node-fetch'); // make sure this is at the top if not already
-
-async function ensureHasRole(req, res, next) {
-  if (!req.user || !req.user.id) return res.redirect('/auth/discord');
-
-  try {
-    const response = await fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
-      headers: {
-        Authorization: `Bot ${process.env.BOT_TOKEN}`,
-      },
-    });
-
-    if (!response.ok) return res.status(403).send('Access denied.');
-
-    const member = await response.json();
-    const hasRole = member.roles.includes(process.env.ROLE_ID); // ROLE_ID = TradeWithJars role
-
-    if (hasRole) return next();
-    else return res.status(403).send('Access denied: You must have the TradeWithJars role.');
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send('Internal server error.');
-  }
-}
-
-
-// Static files
-app.use(express.static(path.join(__dirname)));
-
-// Discord auth
+// Route to start Discord login
 app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
-  res.redirect('/');
-});
 
-// Logout
-app.get('/logout', (req, res) => {
-  req.logout(() => res.redirect('/'));
-});
+// Callback after Discord login
+app.get(
+  '/auth/discord/callback',
+  passport.authenticate('discord', { failureRedirect: '/' }),
+  (req, res) => {
+    const userGuilds = req.user.guilds;
+    const targetGuildId = process.env.GUILD_ID;
+    const requiredRoleId = '1388631579252887697';
 
-// Role check endpoint (optional for frontend use)
-app.get('/check-role', (req, res) => {
-  if (!req.user) return res.status(401).json({ authorized: false });
-  const hasRole = req.user.guilds?.some(g => g.id === process.env.GUILD_ID);
-  if (hasRole) {
-    res.json({ authorized: true, username: req.user.username });
+    const inGuild = userGuilds.find(guild => guild.id === targetGuildId);
+    if (!inGuild) return res.send('You must be in the Discord server.');
+
+    // This part requires actual member data from the bot if deeper validation is needed
+
+    res.redirect('/leverage_calculator.html');
+  }
+);
+
+// Route to check if user is authenticated
+app.get('/check-auth', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ authenticated: true, user: req.user });
   } else {
-    res.json({ authorized: false });
+    res.json({ authenticated: false });
   }
 });
 
-// Serve calculator ONLY if authenticated + has role
-app.get('/', ensureAuthenticated, ensureHasRole, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
-
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
