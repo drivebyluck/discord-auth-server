@@ -11,7 +11,7 @@ const app = express();
 
 app.use(
   session({
-    secret: 'superssecret',
+    secret: process.env.SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
   })
@@ -29,7 +29,7 @@ passport.use(
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
       callbackURL: process.env.CALLBACK_URL,
-      scope: ['identify', 'guilds', 'guilds.members.read'],
+      scope: ['identify', 'guilds'],
     },
     (accessToken, refreshToken, profile, done) => {
       process.nextTick(() => done(null, profile));
@@ -37,61 +37,36 @@ passport.use(
   )
 );
 
-async function ensureHasRole(req, res, next) {
-  if (!req.user) return res.redirect('/');
+function ensureHasRole(req, res, next) {
+  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
 
-  try {
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`,
-      {
-        headers: {
-          Authorization: `Bot ${process.env.BOT_TOKEN}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error('Failed to fetch member info from Discord API.');
+  fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
+    headers: {
+      Authorization: `Bot ${process.env.BOT_TOKEN}`,
+    },
+  })
+    .then(res => res.json())
+    .then(member => {
+      const hasRole = member.roles?.includes(process.env.ROLE_ID);
+      if (hasRole) return next();
       return res.status(403).send('Access denied.');
-    }
-
-    const member = await response.json();
-    const hasRole = member.roles.includes(process.env.ROLE_ID);
-
-    if (hasRole) {
-      next();
-    } else {
-      res.status(403).send('Access denied.');
-    }
-  } catch (err) {
-    console.error('Role check failed:', err);
-    res.status(500).send('Internal server error.');
-  }
+    })
+    .catch(err => {
+      console.error('Role check failed:', err);
+      return res.status(500).send('Internal server error.');
+    });
 }
 
-// ROUTES
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get(
   '/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
-  (req, res) => {
-    res.redirect('/');
-  }
+  (req, res) => res.redirect('/')
 );
 
 app.get('/logout', (req, res) => {
   req.logout(() => res.redirect('/'));
-});
-
-app.get('/check-role', (req, res) => {
-  if (!req.user) return res.status(401).json({ authorized: false });
-
-  const hasRole = req.user.guilds?.some((g) => g.id === process.env.GUILD_ID);
-  res.json({
-    authorized: !!hasRole,
-    username: req.user.username,
-  });
 });
 
 app.get('/check-auth', (req, res) => {
