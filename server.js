@@ -1,8 +1,8 @@
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const fetch = require('node-fetch');
 const path = require('path');
+const fetch = require('node-fetch');
 const DiscordStrategy = require('passport-discord').Strategy;
 
 const app = express();
@@ -21,7 +21,6 @@ app.use(passport.session());
 passport.serializeUser((user, done) => {
   done(null, user);
 });
-
 passport.deserializeUser((user, done) => {
   done(null, user);
 });
@@ -41,8 +40,8 @@ passport.use(
 );
 
 function ensureHasRole(req, res, next) {
-  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
   if (!req.user) return res.redirect('/login.html');
+  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
 
   const hasRole = req.user.guilds?.some(
     (g) => g.id === process.env.GUILD_ID
