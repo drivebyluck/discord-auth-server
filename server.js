@@ -31,7 +31,6 @@ passport.use(new DiscordStrategy({
     const guildId = process.env.GUILD_ID;
     const botToken = process.env.BOT_TOKEN;
 
-    // Fetch member from guild using bot
     const response = await axios.get(`https://discord.com/api/v10/guilds/${guildId}/members/${userId}`, {
       headers: {
         Authorization: `Bot ${botToken}`
@@ -58,9 +57,12 @@ passport.use(new DiscordStrategy({
 }));
 
 app.get('/auth/discord', passport.authenticate('discord'));
+
 app.get('/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/unauthorized' }),
   (req, res) => {
+    // On success, store a token (or flag) in session and redirect
+    req.session.isAuthorized = true;
     res.redirect('/gate.html');
   }
 );
