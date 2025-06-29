@@ -1,21 +1,20 @@
 {
   "name": "discord-auth-server",
   "version": "1.0.0",
-  "description": "Discord role-based auth server for TradeWithJars.net",
+  "description": "OAuth2 server for Discord authentication",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.18.2",
-    "express-session": "^1.17.3",
-    "passport": "^0.6.0",
-    "passport-discord": "^0.2.4",
-    "node-fetch": "^2.6.7"
-  },
   "engines": {
     "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.0",
+    "express": "^4.17.1",
+    "express-session": "^1.17.1",
+    "passport": "^0.6.0",
+    "passport-discord": "0.1.4"
   }
 }
-
