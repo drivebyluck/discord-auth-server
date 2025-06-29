@@ -8,7 +8,7 @@ const path = require('path');
 
 const app = express();
 
-// Serve static files from "public" folder
+// Serve static files (if you have any) from "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
@@ -65,7 +65,7 @@ app.get('/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/unauthorized' }),
   (req, res) => {
     req.session.isAuthorized = true;
-    res.redirect('/gate.html'); // Must exist in ./public/
+    res.redirect('https://tradewithjars.net/gate.html'); // ⬅️ Redirect to live domain
   }
 );
 
