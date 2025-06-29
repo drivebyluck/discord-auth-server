@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>TradeWithJars.net</title>
+  <link href="TradeWithJarslogo.png" rel="icon" type="image/png"/>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: #e6ffe6;
+      font-family: 'Trebuchet MS', sans-serif;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+@keyframes flyIn {
+  0% { transform: translateY(100px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseUpDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+img.logo {
+  display: block;
+  margin: 30px auto 10px;
+  max-width: 220px;
+  animation:
+    flyIn 2s ease-out forwards,
+    pulseUpDown 3s ease-in-out infinite 2s;
+}
+
+
+
+    .dropdown {
+      position: fixed;
+      top: 30px;
+      right: 30px;
+      z-index: 1000;
+    }
+
+    .dropbtn {
+      background-color: #017a36;
+      color: black;
+      padding: 12px 16px;
+      font-size: 18px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #e02c2c;
+      transition: background 0.3s;
+    }
+
+    .dropbtn:hover {
+      background-color: #1c7c35;
+    }
+
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      background-color: #1a1a1a;
+      min-width: 180px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px #e02c2c;
+      z-index: 1001;
+    }
+
+    .dropdown-content a {
+      color: white;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      transition: background 0.3s;
+    }
+
+    .dropdown-content a:hover {
+      background-color: #333;
+    }
+
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .section {
+      background-color: #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px auto;
+      width: 100%;
+      max-width: 95%;
+      box-shadow: 0 0 12px #e02c2c;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .section h2 {
+      color: #017a36;
+      margin-bottom: 20px;
+    }
+
+    #ticker {
+      background-color: #0f0f0f;
+      padding: 12px;
+      font-size: 16px;
+      height: 60px;
+      line-height: 30px;
+      box-shadow: inset 0 0 10px #e02c2c;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #444;
+    }
+
+    th {
+      background-color: #222;
+      color: #e02c2c;
+    }
+
+    tr:nth-child(even) {
+      background-color: #111;
+    }
+
+    .partner-logo {
+      margin-top: 20px;
+    }
+
+    footer {
+      color: #888;
+      font-size: 14px;
+      margin-top: 40px;
+    }
+
+    .glow-banner {
+      animation: glow 1.6s ease-in-out infinite alternate, pulse 2s ease-in-out infinite;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      text-shadow: 0 0 10px #017a36, 0 0 20px #e02c2c;
+      margin: 10px auto 0;
+    }
+
+    .glow-banner a {
+      color: white;
+      text-decoration: none;
+    }
+
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 5px #017a36, 0 0 10px #e02c2c;
+      }
+      to {
+        text-shadow: 0 0 15px #017a36, 0 0 30px #e02c2c;
+      }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.08); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <img alt="Trade With Jars Logo" class="logo" src="TradeWithJarslogo.png"/>
+
+  <div class="dropdown">
+    <button class="dropbtn">☰</button>
+    <div class="dropdown-content">
+      <a href="index.html">Home</a>
+      <a href="gate.html">Leverage Calculator</a>
+      <a href="crypto-news.html">Top News</a>
+      <a href="schedule.html">Presidential Schedule</a>
+      <a href="nfts.html">NFT Tracker</a>
+    </div>
+  </div>
+
+  <div class="glow-banner">
+    <a href="gate.html">🔥 Try Our Proprietary Leverage Calculator 🔥</a>
+  </div>
+
+  <div class="section">
+    <h2>Welcome to Trade With Jars</h2>
+    <p>Welcome to your all-in-one hub for crypto tools, data, and real-time insights. Whether you're tracking Solana NFT trends, calculating leverage, or skimming breaking news; We have it here!</p>
+    <p>I'm Jars. I’ve been investing and trading in crypto since 2010, and after years of switching between apps, trackers, and terminals, I built the tool I always wanted: one simple site with everything I use daily.</p>
+    <p>Track smarter. Trade sharper. Win more.</p>
+  </div>
+
+  <div id="ticker"><span id="rssFeed">Loading headlines...</span></div>
+
+  <div class="section">
+    <h2>Top Solana NFTs</h2>
+    <div id="nftPreview">Loading top NFTs...</div>
+  </div>
+
+  <div class="section">
+    <h2>Presidential Schedule Preview</h2>
+    <table id="scheduleTable">
+      <thead><tr><th>Date</th><th>Time</th><th>Details</th><th>Location</th></tr></thead>
+      <tbody id="scheduleBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section partner-logo">
+    <p>PROUD PARTNER OF</p>
+    <a href="https://discord.gg/bbBPzjJk" target="_blank">
+    <img alt="Doughboi’s Bakery Logo" src="doughbois.png" width="160"/>
+    </a>
+  </div>
+
+  <footer>© 2025 TradeWithJars.net. All rights reserved.</footer>
+
+  <script>
+    let currentHeadline = 0;
+    let allHeadlines = [];
+
+    async function loadRSS() {
+      try {
+        const urls = [
+          "https://corsproxy.io/?https://www.coindesk.com/arc/outboundfeeds/rss/",
+          "https://corsproxy.io/?https://feeds.content.dowjones.io/public/rss/socialeconomyfeed"
+        ];
+
+        for (const url of urls) {
+          const res = await fetch(url);
+          const text = await res.text();
+          const xml = new DOMParser().parseFromString(text, "application/xml");
+          const items = xml.querySelectorAll("item");
+          for (let i = 0; i < Math.min(5, items.length); i++) {
+            allHeadlines.push(items[i].querySelector("title").textContent);
+          }
+        }
+
+        updateTicker();
+        setInterval(updateTicker, 4000);
+      } catch (e) {
+        document.getElementById("rssFeed").innerText = "Failed to load headlines.";
+      }
+    }
+
+    function updateTicker() {
+      if (allHeadlines.length > 0) {
+        document.getElementById("rssFeed").innerText = allHeadlines[currentHeadline];
+        currentHeadline = (currentHeadline + 1) % allHeadlines.length;
+      }
+    }
+
+    async function loadNFTs() {
+      const res = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vSYazPCLVVoKoP_vwg7xH_CO39OrWTooH1zE9SQClP5q-NTs5v0pddJf8b5SqiiYjlRpvHaG228HRX4/pub?output=csv");
+      const text = await res.text();
+      const rows = text.split("\n").map(row => row.split(","));
+      let output = '<table><thead><tr><th>Name</th><th>Image</th><th>Floor</th><th>Volume</th></tr></thead><tbody>';
+      for (let i = 1; i <= 5 && i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 5) continue;
+        output += `<tr><td>${row[1]}</td><td><img src="${row[2]}" width="30"/></td><td>${row[3]}</td><td>${row[4]?.replace(/"/g, "").replace(/\s*SOL$/, "") + " SOL"}</td></tr>`;
+      }
+      output += '</tbody></table>';
+      document.getElementById("nftPreview").innerHTML = output;
+    }
+
+    async function loadSchedule() {
+      const res = await fetch("https://media-cdn.factba.se/rss/json/trump/calendar-full.json");
+      const data = await res.json();
+      const tbody = document.getElementById("scheduleBody");
+      data.slice(0, 5).forEach(event => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${event.date}</td><td>${event.time_formatted || "-"}</td><td>${event.details}</td><td>${event.location || "-"}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadRSS();
+    loadNFTs();
+    loadSchedule();
+  </script>
+</body>
+</html>
