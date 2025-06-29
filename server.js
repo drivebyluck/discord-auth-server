@@ -8,6 +8,9 @@ const path = require('path');
 
 const app = express();
 
+// Serve static files from "public" folder
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(session({
   secret: process.env.SECRET,
   resave: false,
@@ -61,16 +64,13 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/unauthorized' }),
   (req, res) => {
-    // On success, store a token (or flag) in session and redirect
     req.session.isAuthorized = true;
-    res.redirect('/gate.html');
+    res.redirect('/gate.html'); // Must exist in ./public/
   }
 );
 
 app.get('/unauthorized', (req, res) => {
   res.send('Unauthorized');
 });
-
-app.use(express.static(path.join(__dirname)));
 
 app.listen(10000, () => console.log('Server running on port 10000'));
