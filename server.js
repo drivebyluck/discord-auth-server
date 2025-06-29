@@ -8,7 +8,6 @@ const path = require('path');
 
 const app = express();
 
-// Serve static files (if you have any) from "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
@@ -48,10 +47,11 @@ passport.use(new DiscordStrategy({
     console.log("Required role:", process.env.REQUIRED_ROLE);
 
     if (roles.includes(process.env.REQUIRED_ROLE)) {
+      profile.isAuthorized = true;
       return done(null, profile);
     } else {
-      console.log("Role not found.");
-      return done(null, false, { message: 'Unauthorized' });
+      profile.isAuthorized = false;
+      return done(null, profile);
     }
   } catch (error) {
     console.error("Error verifying user role:", error.response?.data || error.message);
@@ -62,10 +62,13 @@ passport.use(new DiscordStrategy({
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get('/auth/discord/callback',
-  passport.authenticate('discord', { failureRedirect: '/unauthorized' }),
+  passport.authenticate('discord', { failureRedirect: 'https://tradewithjars.net/gate.html' }),
   (req, res) => {
-    req.session.isAuthorized = true;
-    res.redirect('https://tradewithjars.net/gate.html'); // ⬅️ Redirect to live domain
+    if (req.user && req.user.isAuthorized) {
+      res.redirect('https://tradewithjars.net/leverage_calculator.html');
+    } else {
+      res.redirect('https://tradewithjars.net/gate.html');
+    }
   }
 );
 
