@@ -1,86 +1,74 @@
-require("dotenv").config();
-const express = require("express");
-const session = require("express-session");
-const passport = require("passport");
-const DiscordStrategy = require("passport-discord").Strategy;
-const axios = require("axios");
-const path = require("path");
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const passport = require('passport');
+const DiscordStrategy = require('passport-discord').Strategy;
+const axios = require('axios');
+const path = require('path');
 
 const app = express();
 
-app.use(
-  session({
-    secret: "verysecret",
-    resave: false,
-    saveUninitialized: false
-  })
-);
+app.use(session({
+  secret: process.env.SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-passport.deserializeUser((obj, done) => {
-  done(null, obj);
-});
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
 
-passport.use(
-  new DiscordStrategy(
-    {
-      clientID: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
-      callbackURL: process.env.CALLBACK_URL,
-      scope: ["identify", "guilds", "guilds.members.read"]
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const response = await axios.get(
-          `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${profile.id}`,
-          {
-            headers: {
-              Authorization: `Bot ${process.env.BOT_TOKEN}`
-            }
-          }
-        );
+passport.use(new DiscordStrategy({
+  clientID: process.env.CLIENT_ID,
+  clientSecret: process.env.CLIENT_SECRET,
+  callbackURL: process.env.CALLBACK_URL,
+  scope: ['identify', 'guilds', 'guilds.members.read']
+}, async (accessToken, refreshToken, profile, done) => {
+  try {
+    const userId = profile.id;
+    const guildId = process.env.GUILD_ID;
+    const botToken = process.env.BOT_TOKEN;
 
-        const roles = response.data.roles;
-        if (roles.includes(process.env.REQUIRED_ROLE_ID)) {
-          return done(null, profile);
-        } else {
-          return done(null, false);
-        }
-      } catch (err) {
-        console.error("Error verifying user role:", err);
-        return done(err, null);
+    // Fetch member from guild using bot
+    const response = await axios.get(`https://discord.com/api/v10/guilds/${guildId}/members/${userId}`, {
+      headers: {
+        Authorization: `Bot ${botToken}`
       }
+    });
+
+    const member = response.data;
+    const roles = member.roles;
+
+    console.log("Fetched user ID:", userId);
+    console.log("Roles in guild:", roles);
+    console.log("Required role:", process.env.REQUIRED_ROLE);
+
+    if (roles.includes(process.env.REQUIRED_ROLE)) {
+      return done(null, profile);
+    } else {
+      console.log("Role not found.");
+      return done(null, false, { message: 'Unauthorized' });
     }
-  )
-);
+  } catch (error) {
+    console.error("Error verifying user role:", error.response?.data || error.message);
+    return done(null, false, { message: 'Unauthorized' });
+  }
+}));
 
-app.get(
-  "/auth/discord",
-  passport.authenticate("discord")
-);
-
-app.get(
-  "/auth/discord/callback",
-  passport.authenticate("discord", {
-    failureRedirect: "/unauthorized.html"
-  }),
+app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord/callback',
+  passport.authenticate('discord', { failureRedirect: '/unauthorized' }),
   (req, res) => {
-    res.redirect("/gate.html");
+    res.redirect('/gate.html');
   }
 );
 
-app.use(express.static(path.join(__dirname, "public")));
-
-app.get("/", (req, res) => {
-  res.redirect("/gate.html");
+app.get('/unauthorized', (req, res) => {
+  res.send('Unauthorized');
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.use(express.static(path.join(__dirname)));
+
+app.listen(10000, () => console.log('Server running on port 10000'));
