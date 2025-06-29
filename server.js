@@ -1,7 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const path = require('path');
 const DiscordStrategy = require('passport-discord').Strategy;
 
@@ -68,7 +68,7 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get(
   '/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
-  (req, res) => res.redirect('/')
+  (req, res) => res.redirect('https://www.tradewithjars.net/leverage_calculator.html') // <-- Updated redirect
 );
 
 app.get('/logout', (req, res) => {
