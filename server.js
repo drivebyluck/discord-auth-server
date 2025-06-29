@@ -1,109 +1,88 @@
+
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const passport = require('passport');
-const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-const path = require('path');
-const DiscordStrategy = require('passport-discord').Strategy;
-
+const axios = require('axios');
+const qs = require('querystring');
 const app = express();
 
-// Session settings
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'supersecret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
-    },
-  })
-);
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+const GUILD_ID = process.env.GUILD_ID;
+const REQUIRED_ROLE_ID = process.env.REQUIRED_ROLE_ID;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
-app.use(passport.initialize());
-app.use(passport.session());
+app.use(session({
+  secret: 'very_secure_session_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 3600000,
+    secure: false
+  }
+}));
 
-passport.serializeUser((user, done) => {
-  done(null, user);
+app.get('/auth/discord', async (req, res) => {
+  if (req.session.user) {
+    return res.redirect('/success');
+  }
+  const authorizeUrl = \`https://discord.com/api/oauth2/authorize?client_id=\${CLIENT_ID}&redirect_uri=\${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.members.read\`;
+  res.redirect(authorizeUrl);
 });
 
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
+app.get('/auth/discord/callback', async (req, res) => {
+  const code = req.query.code;
+  if (!code) return res.send('No code provided');
 
-passport.use(
-  new DiscordStrategy(
-    {
-      clientID: process.env.CLIENT_ID,
-      clientSecret: process.env.CLIENT_SECRET,
-      callbackURL: process.env.CALLBACK_URL,
-      scope: ['identify', 'guilds', 'guilds.members.read'],
-    },
-    function (accessToken, refreshToken, profile, done) {
-      return done(null, profile);
-    }
-  )
-);
+  try {
+    const tokenRes = await axios.post('https://discord.com/api/oauth2/token',
+      qs.stringify({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+        scope: 'identify guilds guilds.members.read'
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
-// Middleware to check role
-function ensureHasRole(req, res, next) {
-  if (!req.isAuthenticated()) return res.redirect('/auth/discord');
-  if (!req.user) return res.redirect('/auth/discord');
+    const access_token = tokenRes.data.access_token;
 
-  fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
-    headers: {
-      Authorization: `Bot ${process.env.BOT_TOKEN}`,
-    },
-  })
-    .then(res => res.json())
-    .then(member => {
-      const hasRole = member.roles?.includes(process.env.ROLE_ID);
-      if (hasRole) return next();
-      return res.status(403).send('Access denied.');
-    })
-    .catch(err => {
-      console.error('Role check failed:', err);
-      return res.status(500).send('Internal server error.');
+    const userRes = await axios.get('https://discord.com/api/users/@me', {
+      headers: { Authorization: \`Bearer \${access_token}\` }
     });
-}
 
-// Routes
-app.get('/auth/discord', passport.authenticate('discord'));
+    const user = userRes.data;
 
-app.get(
-  '/auth/discord/callback',
-  passport.authenticate('discord', { failureRedirect: '/auth/discord' }),
-  (req, res) => res.redirect('https://www.tradewithjars.net/leverage_calculator.html')
-);
+    const memberRes = await axios.get(\`https://discord.com/api/users/@me/guilds/\${GUILD_ID}/member\`, {
+      headers: { Authorization: \`Bearer \${access_token}\` }
+    });
 
-app.get('/logout', (req, res) => {
-  req.logout(() => res.redirect('/'));
+    const member = memberRes.data;
+    const hasRole = member.roles.includes(REQUIRED_ROLE_ID);
+
+    if (!hasRole) return res.send('Access denied: missing required role');
+
+    req.session.user = {
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+      roles: member.roles
+    };
+
+    res.redirect('/success');
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.send('Access denied.');
+  }
 });
 
-app.get('/check-role', (req, res) => {
-  if (!req.user) return res.status(401).json({ authorized: false });
-
-  fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
-    headers: {
-      Authorization: `Bot ${process.env.BOT_TOKEN}`,
-    },
-  })
-    .then(res => res.json())
-    .then(member => {
-      const hasRole = member.roles?.includes(process.env.ROLE_ID);
-      res.json({ authorized: hasRole, username: req.user.username });
-    })
-    .catch(() => res.status(500).json({ authorized: false }));
-});
-
-app.get('/check-auth', (req, res) => {
-  res.json({ authorized: !!req.user });
-});
-
-// Default root
-app.get('/', ensureHasRole, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
+app.get('/success', (req, res) => {
+  if (!req.session.user) return res.redirect('/auth/discord');
+  res.sendFile(__dirname + '/leverage_calculator.html');
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log('Server running on port ' + PORT));
