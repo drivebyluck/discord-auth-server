@@ -67,7 +67,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Initial auth request - stores intended redirect target in session
+// Initial login route
 app.get(
   "/auth/discord",
   (req, res, next) => {
@@ -77,7 +77,7 @@ app.get(
   passport.authenticate("discord")
 );
 
-// Callback handler
+// OAuth callback
 app.get(
   "/auth/discord/callback",
   passport.authenticate("discord", { failureRedirect: "https://tradewithjars.net/gate.html" }),
@@ -89,7 +89,7 @@ app.get(
   }
 );
 
-// For gate.html to check access
+// For gate.html to verify access
 app.get("/check-auth", (req, res) => {
   if (req.isAuthenticated() && req.user.guildRoles.includes(REQUIRED_ROLE_ID)) {
     return res.sendStatus(200);
