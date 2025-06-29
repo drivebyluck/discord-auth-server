@@ -1,21 +1,26 @@
-require('dotenv').config();
-const express = require('express');
-const session = require('express-session');
-const passport = require('passport');
-const DiscordStrategy = require('passport-discord').Strategy;
-const axios = require('axios');
-const path = require('path');
+require("dotenv").config();
+const express = require("express");
+const session = require("express-session");
+const passport = require("passport");
+const DiscordStrategy = require("passport-discord").Strategy;
+const axios = require("axios");
+const cors = require("cors");
+const path = require("path");
 
 const app = express();
 
-// Serve static files from "public" if needed
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(session({
-  secret: process.env.SECRET,
-  resave: false,
-  saveUninitialized: false
+app.use(cors({
+  origin: ["https://tradewithjars.net"],
+  credentials: true
 }));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -23,58 +28,63 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-passport.use(new DiscordStrategy({
-  clientID: process.env.CLIENT_ID,
-  clientSecret: process.env.CLIENT_SECRET,
-  callbackURL: process.env.CALLBACK_URL,
-  scope: ['identify', 'guilds', 'guilds.members.read']
-}, async (accessToken, refreshToken, profile, done) => {
+passport.use(
+  new DiscordStrategy(
+    {
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      callbackURL: process.env.CALLBACK_URL,
+      scope: ["identify", "guilds", "guilds.members.read"],
+    },
+    (accessToken, refreshToken, profile, done) => {
+      process.nextTick(() => done(null, profile));
+    }
+  )
+);
+
+// Serve static files (like gate.html and leverage_calculator.html if needed)
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/auth/discord", passport.authenticate("discord"));
+
+app.get("/auth/discord/callback", passport.authenticate("discord", { failureRedirect: "/gate.html" }), async (req, res) => {
   try {
-    const userId = profile.id;
+    const userId = req.user.id;
     const guildId = process.env.GUILD_ID;
+    const roleId = process.env.ROLE_ID;
     const botToken = process.env.BOT_TOKEN;
 
     const response = await axios.get(`https://discord.com/api/v10/guilds/${guildId}/members/${userId}`, {
       headers: {
-        Authorization: `Bot ${botToken}`
-      }
+        Authorization: `Bot ${botToken}`,
+      },
     });
 
     const member = response.data;
     const roles = member.roles;
 
-    if (roles.includes(process.env.REQUIRED_ROLE)) {
-      profile.isAuthorized = true;
-      return done(null, profile);
+    if (roles.includes(roleId)) {
+      console.log(`✅ User ${userId} authorized, redirecting to calculator`);
+      res.redirect("https://tradewithjars.net/leverage_calculator.html");
     } else {
-      profile.isAuthorized = false;
-      return done(null, profile);
+      console.log(`⛔ User ${userId} missing required role`);
+      res.redirect("https://tradewithjars.net/gate.html");
     }
   } catch (error) {
-    console.error("Error verifying user role:", error.response?.data || error.message);
-    return done(null, false, { message: 'Unauthorized' });
-  }
-}));
-
-app.get('/auth/discord', passport.authenticate('discord'));
-
-app.get('/auth/discord/callback',
-  passport.authenticate('discord', { failureRedirect: 'https://tradewithjars.net/gate.html' }),
-  (req, res) => {
-    if (req.user && req.user.isAuthorized) {
-      res.redirect('https://tradewithjars.net/leverage_calculator.html');
-    } else {
-      res.redirect('https://tradewithjars.net/gate.html');
-    }
-  }
-);
-
-app.get('/check-auth', (req, res) => {
-  if (req.isAuthenticated() && req.user?.isAuthorized) {
-    return res.sendStatus(200);
-  } else {
-    return res.sendStatus(401);
+    console.error("❌ Error checking roles:", error.message);
+    res.redirect("https://tradewithjars.net/gate.html");
   }
 });
 
-app.listen(10000, () => console.log('Server running on port 10000'));
+app.get("/check-auth", (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ authenticated: true, user: req.user });
+  } else {
+    res.status(401).json({ authenticated: false });
+  }
+});
+
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
