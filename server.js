@@ -40,10 +40,8 @@ passport.use(
   )
 );
 
-// Role verification middleware
 function ensureHasRole(req, res, next) {
   if (!req.isAuthenticated()) return res.redirect('/auth/discord');
-  if (!req.user) return res.redirect('/login.html');
 
   fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
     headers: {
@@ -52,7 +50,10 @@ function ensureHasRole(req, res, next) {
   })
     .then(res => res.json())
     .then(member => {
-      const hasRole = member.roles?.includes(process.env.ROLE_ID);
+      if (!member || !member.roles) {
+        return res.status(403).send('Access denied: member not found or roles missing.');
+      }
+      const hasRole = member.roles.includes(process.env.ROLE_ID);
       if (hasRole) return next();
       return res.status(403).send('Access denied.');
     })
@@ -62,7 +63,6 @@ function ensureHasRole(req, res, next) {
     });
 }
 
-// Routes
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get(
