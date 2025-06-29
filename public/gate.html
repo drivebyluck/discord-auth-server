@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gate Access</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 50px;
+    }
+    a.button {
+      display: inline-block;
+      padding: 12px 25px;
+      background-color: #5865F2;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 18px;
+      margin-top: 20px;
+    }
+    #error-message {
+      color: red;
+      margin-top: 25px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to the Access Gate</h1>
+  <a class="button" href="https://discord-auth-server-ajjz.onrender.com/auth/discord">Login with Discord</a>
+  <div id="error-message"></div>
+
+  <script>
+    // Check URL for error param
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "access_denied") {
+      document.getElementById("error-message").innerHTML = `
+        You do not have the required role. <br>
+        Please visit <a href="https://discord.gg/bbBPzjJk" target="_blank" style="color:#00bfff;">Doughboi's Bakery Discord</a> to request access.
+      `;
+    }
+  </script>
+</body>
+</html>
