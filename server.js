@@ -7,11 +7,16 @@ const DiscordStrategy = require('passport-discord').Strategy;
 
 const app = express();
 
+// Session settings
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'supersecret',
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    },
   })
 );
 
@@ -40,8 +45,10 @@ passport.use(
   )
 );
 
+// Middleware to check role
 function ensureHasRole(req, res, next) {
   if (!req.isAuthenticated()) return res.redirect('/auth/discord');
+  if (!req.user) return res.redirect('/auth/discord');
 
   fetch(`https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${req.user.id}`, {
     headers: {
@@ -50,10 +57,7 @@ function ensureHasRole(req, res, next) {
   })
     .then(res => res.json())
     .then(member => {
-      if (!member || !member.roles) {
-        return res.status(403).send('Access denied: member not found or roles missing.');
-      }
-      const hasRole = member.roles.includes(process.env.ROLE_ID);
+      const hasRole = member.roles?.includes(process.env.ROLE_ID);
       if (hasRole) return next();
       return res.status(403).send('Access denied.');
     })
@@ -63,11 +67,12 @@ function ensureHasRole(req, res, next) {
     });
 }
 
+// Routes
 app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get(
   '/auth/discord/callback',
-  passport.authenticate('discord', { failureRedirect: '/' }),
+  passport.authenticate('discord', { failureRedirect: '/auth/discord' }),
   (req, res) => res.redirect('https://www.tradewithjars.net/leverage_calculator.html')
 );
 
@@ -95,6 +100,7 @@ app.get('/check-auth', (req, res) => {
   res.json({ authorized: !!req.user });
 });
 
+// Default root
 app.get('/', ensureHasRole, (req, res) => {
   res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
 });
