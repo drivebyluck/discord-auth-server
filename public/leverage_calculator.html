@@ -1,3 +1,4 @@
+<!-- Full code preserved, only one fix at the bottom -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,13 +14,11 @@
       color: white;
       text-align: center;
     }
-
     h1 {
       margin-top: 30px;
       font-size: 40px;
       color: #00ffae;
     }
-
     .container {
       max-width: 800px;
       margin: 40px auto;
@@ -28,7 +27,6 @@
       border-radius: 20px;
       box-shadow: 0 0 20px #00ffae;
     }
-
     label, select, input {
       display: block;
       width: 90%;
@@ -40,13 +38,11 @@
       color: white;
       font-size: 16px;
     }
-
     input:focus, select:focus {
       outline: none;
       border-color: #00ffae;
       box-shadow: 0 0 10px #00ffae;
     }
-
     button {
       background-color: #00ffae;
       color: black;
@@ -57,23 +53,19 @@
       cursor: pointer;
       margin-top: 20px;
     }
-
     button:hover {
       background-color: #00d29b;
     }
-
     #result {
       margin-top: 30px;
       font-size: 20px;
     }
-
     .mode-options {
       display: flex;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
     }
-
     .mode-options button {
       background-color: #1a1a1a;
       border: 2px solid #00ffae;
@@ -82,16 +74,13 @@
       border-radius: 10px;
       font-size: 14px;
     }
-
     .mode-options button.active {
       background-color: #00ffae;
       color: black;
     }
-
     .fields {
       display: none;
     }
-
     .fields.active {
       display: block;
     }
@@ -141,7 +130,6 @@
 
   <script>
     let currentMode = "";
-
     function showMode(mode) {
       document.querySelectorAll('.fields').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.mode-options button').forEach(btn => btn.classList.remove('active'));
@@ -207,22 +195,20 @@
       `;
     }
 
-    // Default mode
     showMode('entry');
   </script>
 
-  <!-- Only addition below: Discord role check redirect -->
   <script>
     fetch('/check-role')
       .then(res => res.json())
       .then(data => {
         if (!data.authorized) {
-          window.location.href = '/auth/discord';
+          window.location.href = 'https://www.tradewithjars.net/auth/discord';
         }
       })
       .catch(err => {
         console.error(err);
-        window.location.href = '/auth/discord';
+        window.location.href = 'https://www.tradewithjars.net/auth/discord';
       });
   </script>
 </body>
