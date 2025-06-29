@@ -32,7 +32,7 @@ passport.use(
       clientID: process.env.CLIENT_ID,
       clientSecret: process.env.CLIENT_SECRET,
       callbackURL: process.env.CALLBACK_URL,
-      scope: ['identify', 'guilds'],
+      scope: ['identify', 'guilds', 'guilds.members.read'],
     },
     function (accessToken, refreshToken, profile, done) {
       return done(null, profile);
@@ -68,7 +68,7 @@ app.get('/auth/discord', passport.authenticate('discord'));
 app.get(
   '/auth/discord/callback',
   passport.authenticate('discord', { failureRedirect: '/' }),
-  (req, res) => res.redirect('https://www.tradewithjars.net/leverage_calculator.html') // <-- Updated redirect
+  (req, res) => res.redirect('https://www.tradewithjars.net/leverage_calculator.html')
 );
 
 app.get('/logout', (req, res) => {
@@ -99,6 +99,5 @@ app.get('/', ensureHasRole, (req, res) => {
   res.sendFile(path.join(__dirname, 'public/leverage_calculator.html'));
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
