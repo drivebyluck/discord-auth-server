@@ -4,96 +4,82 @@ const session = require("express-session");
 const passport = require("passport");
 const DiscordStrategy = require("passport-discord").Strategy;
 const axios = require("axios");
+const path = require("path");
 
 const app = express();
 
-const {
-  CLIENT_ID,
-  CLIENT_SECRET,
-  CALLBACK_URL,
-  GUILD_ID,
-  REQUIRED_ROLE,
-  BOT_TOKEN,
-  SECRET
-} = process.env;
-
-// Session setup
 app.use(
   session({
-    secret: SECRET || "secret-session-key",
+    secret: "verysecret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false
   })
 );
 
-// Passport setup
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((obj, done) => {
+  done(null, obj);
+});
 
 passport.use(
   new DiscordStrategy(
     {
-      clientID: CLIENT_ID,
-      clientSecret: CLIENT_SECRET,
-      callbackURL: CALLBACK_URL,
-      scope: ["identify", "guilds", "guilds.members.read"],
+      clientID: process.env.CLIENT_ID,
+      clientSecret: process.env.CLIENT_SECRET,
+      callbackURL: process.env.CALLBACK_URL,
+      scope: ["identify", "guilds", "guilds.members.read"]
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
         const response = await axios.get(
-          `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${profile.id}`,
+          `https://discord.com/api/v10/guilds/${process.env.GUILD_ID}/members/${profile.id}`,
           {
             headers: {
-              Authorization: `Bot ${BOT_TOKEN}`,
-            },
+              Authorization: `Bot ${process.env.BOT_TOKEN}`
+            }
           }
         );
 
-        const member = response.data;
-        const hasRole = member.roles.includes(REQUIRED_ROLE);
-
-        if (!hasRole) {
-          return done(null, false, { message: "Missing required role" });
+        const roles = response.data.roles;
+        if (roles.includes(process.env.REQUIRED_ROLE_ID)) {
+          return done(null, profile);
+        } else {
+          return done(null, false);
         }
-
-        return done(null, profile);
-      } catch (error) {
-        console.error("Error verifying user role:", error.response?.data || error.message);
-        return done(error);
+      } catch (err) {
+        console.error("Error verifying user role:", err);
+        return done(err, null);
       }
     }
   )
 );
 
-// Discord auth route
-app.get("/auth/discord", passport.authenticate("discord"));
+app.get(
+  "/auth/discord",
+  passport.authenticate("discord")
+);
 
-// Callback route
 app.get(
   "/auth/discord/callback",
   passport.authenticate("discord", {
-    failureRedirect: "/unauthorized",
-    session: true,
+    failureRedirect: "/unauthorized.html"
   }),
   (req, res) => {
-    res.redirect("https://tradewithjars.net/leverage_calculator.html");
+    res.redirect("/gate.html");
   }
 );
 
-// Unauthorized fallback
-app.get("/unauthorized", (req, res) => {
-  res.status(403).send("Access Denied: You do not have the required role.");
-});
+app.use(express.static(path.join(__dirname, "public")));
 
-// Health check
 app.get("/", (req, res) => {
-  res.send("Discord Auth Server is running.");
+  res.redirect("/gate.html");
 });
 
-// Start server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
